@@ -1,13 +1,15 @@
 #include <vector>
 #include <iostream>
+using namespace std;
 
 // Merge two subarrays arr[l..m] and arr[m+1..r] to create sorted array arr[l..r]
-void merge(int arr[], int l, int m, int r)
+void merge(vector<int> arr, int l, int m, int r)
 {
     int n1 = m - l + 1;
     int n2 = r - m;
-    std::vector<int> L(n1);
-    std::vector<int> R(n2);
+
+    vector<int> L(n1);
+    vector<int> R(n2);
 
     for (int i = 0; i < n1; i++)
     {
@@ -19,7 +21,8 @@ void merge(int arr[], int l, int m, int r)
         R[j] = arr[m + 1 + j];
     }
 
-    int i = 0, j = 0;
+    int i = 0;
+    int j = 0;
     int k = l;
     while (i < n1 && j < n2)
     {
@@ -51,17 +54,19 @@ void merge(int arr[], int l, int m, int r)
     }
 }
 
-void mergeSort(int arr[], int l, int r)
+// Divide arr into two subarrays, sort, then merge them
+void mergeSort(vector<int> arr, int l, int r)
 {
     if (l < r)
     {
-        int m = l + (r - l) / 2;
+        int m = (l + r) / 2;
         mergeSort(arr, l, m);
         mergeSort(arr, m + 1, r);
         merge(arr, l, m, r);
     }
 }
 
-int main() {
+int main()
+{
     return 0;
 }
