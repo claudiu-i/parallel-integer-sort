@@ -4,8 +4,10 @@ path ?= sort/sort_numbers
 serial: sort/sort_numbers
 	python3 check.py $(n) $(path)
 
-sort/sort_numbers: sort/sort_numbers.ml
-	ocamlc -o sort/sort_numbers sort/sort_numbers.ml
+# sort/sort_numbers: sort/sort_numbers.ml
+# 	ocamlc -o sort/sort_numbers sort/sort_numbers.ml
+sort/sort_numbers: sort/sort_numbers.cpp
+	g++ -o sort/sort_numbers sort/sort_numbers.cpp
 
 .PHONY: clean
 
