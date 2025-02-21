@@ -3,7 +3,7 @@
 using namespace std;
 
 // Merge two subarrays arr[l..m] and arr[m+1..r] to create sorted array arr[l..r]
-void merge(vector<int> arr, int l, int m, int r)
+void merge(vector<int> &arr, int l, int m, int r)
 {
     int n1 = m - l + 1;
     int n2 = r - m;
@@ -55,7 +55,7 @@ void merge(vector<int> arr, int l, int m, int r)
 }
 
 // Divide arr into two subarrays, sort, then merge them
-void mergeSort(vector<int> arr, int l, int r)
+void mergeSort(vector<int> &arr, int l, int r)
 {
     if (l < r)
     {
@@ -68,5 +68,20 @@ void mergeSort(vector<int> arr, int l, int r)
 
 int main()
 {
+    vector<int> arr;
+    int num;
+
+    while (cin >> num)
+    {
+        arr.push_back(num);
+    }
+
+    mergeSort(arr, 0, arr.size() - 1);
+
+    for (int i : arr)
+    {
+        cout << i << endl;
+    }
+
     return 0;
 }
