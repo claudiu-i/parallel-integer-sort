@@ -80,7 +80,7 @@ int main()
 
     for (int i : arr)
     {
-        cout << i << endl;
+        cout << i << "\n";
     }
 
     return 0;
