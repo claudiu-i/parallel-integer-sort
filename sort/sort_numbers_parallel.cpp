@@ -5,7 +5,7 @@
 using namespace std;
 
 // Parameters to limit thread creation for small tasks
-int threshold = 5000;
+int threshold = 10000;
 int maxDepth = 3; // log2(num_cores)
 
 // Merge two subarrays arr[l..m] and arr[m+1..r] to create sorted array arr[l..r]
@@ -60,14 +60,56 @@ void merge(vector<int> &arr, int l, int m, int r)
     }
 }
 
+void mergeWithTemp(vector<int> &arr, vector<int> &temp, int l, int m, int r)
+{
+    int i = l;
+    int j = m + 1;
+    int k = l; // index in main array
+
+    while (i <= m && j <= r)
+    {
+        if (arr[i] <= arr[j])
+        {
+            temp[k] = arr[i];
+            i++;
+        }
+        else
+        {
+            temp[k] = arr[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i <= m)
+    {
+        temp[k] = arr[i];
+        i++;
+        k++;
+    }
+
+    while (j <= r)
+    {
+        temp[k] = arr[j];
+        j++;
+        k++;
+    }
+
+    // Copy from temp back to main arr
+    for (int idx = l; idx <= r; idx++)
+    {
+        arr[idx] = temp[idx];
+    }
+}
+
 // Use two threads to merge simulatenously
-void doubleMerge(vector<int> &arr, int l, int m, int r)
+void doubleMerge(vector<int> &arr, vector<int> &temp, int l, int m, int r)
 {
     int n = r - l + 1;
-    vector<int> temp(n); // array for merged result
+    // vector<int> temp(n); // array for merged result
 
-    int leftSize = m - l + 1;
-    int rightSize = r - m;
+    // int leftSize = m - l + 1;
+    // int rightSize = r - m;
 
     // Merges the minimum elements from the beginning
     auto mergeMins = [&]()
@@ -79,12 +121,12 @@ void doubleMerge(vector<int> &arr, int l, int m, int r)
         {
             if (j > r || (i <= m && arr[i] <= arr[j]))
             {
-                temp[k] = arr[i];
+                temp[l + k] = arr[i];
                 i++;
             }
             else
             {
-                temp[k] = arr[j];
+                temp[l + k] = arr[j];
                 j++;
             }
             k++;
@@ -101,12 +143,12 @@ void doubleMerge(vector<int> &arr, int l, int m, int r)
         {
             if (j < m + 1 || (i >= l && arr[i] > arr[j]))
             {
-                temp[k] = arr[i];
+                temp[l + k] = arr[i];
                 i--;
             }
             else
             {
-                temp[k] = arr[j];
+                temp[l + k] = arr[j];
                 j--;
             }
             k--;
@@ -114,14 +156,18 @@ void doubleMerge(vector<int> &arr, int l, int m, int r)
     };
 
     // Launch one async thread to merge two halves in parallel
-    auto future = async(launch::async, mergeMins);
+    // auto future = async(launch::async, mergeMins);
+
+    // Create and start one thread to merge the mins
+    thread minThread(mergeMins);
     mergeMaxes();
-    future.wait();
+    // future.wait();
+    minThread.join(); // wait for minThread to finish work
 
     // Copy merged result back into main array
     for (int i = 0; i < n; i++)
     {
-        arr[l + i] = temp[i];
+        arr[l + i] = temp[l + i];
     }
 }
 
@@ -137,8 +183,19 @@ void mergeSort(vector<int> &arr, int l, int r)
     }
 }
 
+void mergeSortWithTemp(vector<int> &arr, vector<int> &temp, int l, int r)
+{
+    if (l < r)
+    {
+        int m = (l + r) / 2;
+        mergeSortWithTemp(arr, temp, l, m);
+        mergeSortWithTemp(arr, temp, m + 1, r);
+        mergeWithTemp(arr, temp, l, m, r);
+    }
+}
+
 // (Parallel) Divide arr into two subarrays, sort, then merge them
-void parallelMergeSort(vector<int> &arr, int l, int r, int depth = 0)
+void parallelMergeSort(vector<int> &arr, vector<int> &temp, int l, int r, int depth = 0)
 {
     if (l < r)
     {
@@ -147,19 +204,23 @@ void parallelMergeSort(vector<int> &arr, int l, int r, int depth = 0)
         if ((r - l) > threshold && depth < maxDepth)
         {
             // Launch one async thread to sort left and right in parallel
-            auto leftFuture = async(launch::async, parallelMergeSort, ref(arr), l, m, depth + 1);
-            parallelMergeSort(arr, m + 1, r, depth + 1); // sort right
-            leftFuture.wait();
+            // auto leftFuture = async(launch::async, parallelMergeSort, ref(arr), l, m, depth + 1);
+
+            // Create and start one thread to sort left half
+            thread leftThread(parallelMergeSort, ref(arr), ref(temp), l, m, depth + 1);
+            parallelMergeSort(arr, temp, m + 1, r, depth + 1); // sort right half
+            // leftFuture.wait();
+            leftThread.join(); // wait for leftThread to finish
         }
         else
         {
             // Default to serial implementation if sorting task too small
-            mergeSort(arr, l, m);
-            mergeSort(arr, m + 1, r);
+            mergeSortWithTemp(arr, temp, l, m);
+            mergeSortWithTemp(arr, temp, m + 1, r);
         }
 
         // Double merging
-        doubleMerge(arr, l, m, r);
+        doubleMerge(arr, temp, l, m, r);
     }
 }
 
@@ -174,7 +235,8 @@ int main()
         arr.push_back(num);
     }
 
-    parallelMergeSort(arr, 0, arr.size() - 1);
+    vector<int> temp(arr.size()); // allocate temp array once
+    parallelMergeSort(arr, temp, 0, arr.size() - 1);
 
     for (int i : arr)
     {
